@@ -1,0 +1,39 @@
+name: CI + Evidently
+
+on: push
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install deps
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          pip install pytest
+
+      - name: Run tests
+        run: pytest -q
+
+      # Facultatif — ne casse pas la CI si absent
+      - name: Generate Evidently report (optional)
+        if: ${{ always() && hashFiles('utils/generate_evidently_report.py') }}
+        run: python utils/generate_evidently_report.py
+
+      - name: Upload report artifact (optional)
+        if: ${{ always() && hashFiles('reports/*.html') }}
+        uses: actions/upload-artifact@v5
+        with:
+          name: evidently-report
+          path: reports/*.html
+          if-no-files-found: ignore
+          retention-days: 7
+
